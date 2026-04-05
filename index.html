@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fase y Retardo de Grupo — Procesadores Espectrales</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --cream-light: #FDF8F3;
+  --cream: #F5EDE4;
+  --cream-dark: #E8DDD0;
+  --sage-light: #C5D4C0;
+  --sage: #9BB08F;
+  --sage-dark: #7A9A6D;
+  --terracotta-light: #D4847C;
+  --terracotta: #B85C50;
+  --terracotta-dark: #8B3A30;
+  --wood-light: #D4B896;
+  --wood: #A67B5B;
+  --wood-dark: #6B4423;
+  --text-primary: #2C2420;
+  --text-secondary: #5C544D;
+  --text-muted: #8A817A;
+  --border: #D4C8BC;
+  --shadow-sm: 0 1px 3px rgba(44,36,32,0.08);
+  --shadow-md: 0 4px 12px rgba(44,36,32,0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text-primary); overflow: hidden; }
+body { display: flex; flex-direction: column; }
+
+.header {
+  background: linear-gradient(135deg, var(--wood-dark) 0%, #4A2E15 100%);
+  padding: 10px 18px; display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--shadow-md); flex-shrink: 0; z-index: 10;
+}
+.hdr-left { display: flex; align-items: center; gap: 11px; }
+.hdr-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.12); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.hdr-icon svg { width: 18px; height: 18px; stroke: rgba(255,255,255,0.9); fill: none; }
+.hdr-title { font-size: 15px; font-weight: 700; color: var(--cream-light); line-height: 1.2; }
+.hdr-sub { font-size: 10px; color: rgba(253,248,243,0.6); }
+.hdr-right { display: flex; align-items: center; gap: 8px; }
+.hdr-chip {
+  font-family: 'JetBrains Mono', monospace; font-size: 9.5px; padding: 2px 9px;
+  background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.16);
+  color: var(--cream-light); border-radius: 20px;
+}
+
+.app-body { display: grid; grid-template-columns: 408px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+
+.left-panel { background: var(--cream-light); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.left-scroll { flex: 1; overflow-y: auto; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.left-scroll::-webkit-scrollbar { width: 3px; }
+.left-scroll::-webkit-scrollbar-thumb { background: var(--cream-dark); border-radius: 2px; }
+
+.proc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.proc-btn {
+  padding: 8px 5px 7px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  background: var(--cream-light); cursor: pointer; transition: all 0.14s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.proc-btn svg { width: 36px; height: 22px; }
+.proc-btn .pb-short { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; color: var(--text-muted); }
+.proc-btn .pb-long { font-size: 8.5px; color: var(--text-muted); }
+.proc-btn.on { border-color: var(--wood); background: white; box-shadow: var(--shadow-sm); }
+.proc-btn.on .pb-short { color: var(--wood-dark); }
+.proc-btn:hover:not(.on) { border-color: var(--wood-light); }
+
+.card { background: white; border-radius: var(--radius-md); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
+.card-head {
+  padding: 7px 11px; background: var(--cream-light); border-bottom: 1px solid var(--cream-dark);
+  display: flex; align-items: center; gap: 7px;
+}
+.card-head svg { width: 12px; height: 12px; stroke: var(--wood); flex-shrink: 0; }
+.card-head h3 { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.card-head .proc-tag {
+  margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+  color: var(--wood-dark); background: rgba(166,123,91,0.12); border: 1px solid var(--wood-light);
+  padding: 1px 7px; border-radius: 10px;
+}
+.card-body { padding: 11px; display: flex; flex-direction: column; gap: 9px; }
+
+.param-row { display: flex; flex-direction: column; gap: 4px; }
+.param-head { display: flex; justify-content: space-between; align-items: center; }
+.param-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+.param-pill { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; color: var(--wood-dark); background: var(--cream-light); padding: 2px 8px; border-radius: 10px; }
+.param-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-muted); margin-top: 1px; text-align: right; }
+.styled-range {
+  -webkit-appearance: none; width: 100%; height: 5px;
+  background: var(--cream-dark); border-radius: 3px; outline: none; cursor: pointer;
+}
+.styled-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  background: linear-gradient(135deg, var(--wood-light), var(--wood));
+  border-radius: 50%; box-shadow: var(--shadow-sm); cursor: grab; transition: transform 0.1s;
+}
+.styled-range::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.15); }
+
+.formula-area {
+  padding: 8px 10px 6px; overflow-x: auto; text-align: center;
+  background: rgba(253,248,243,0.55);
+}
+.formula-area + .formula-area { border-top: 1px solid var(--cream-dark); }
+.formula-area .katex { font-size: 0.9em; }
+.formula-area .katex-display { margin: 2px 0; }
+.formula-line { padding: 5px 0; }
+.formula-line + .formula-line { border-top: 1px dashed var(--cream-dark); }
+
+.coeff-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.coeff-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.coeff-cell { background: var(--cream-light); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; text-align: center; }
+.coeff-lbl { font-size: 9px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 2px; }
+.coeff-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-secondary); display: block; transition: color 0.22s; }
+.coeff-val.flash { color: var(--wood-dark); }
+
+.desc-box {
+  background: linear-gradient(135deg, rgba(166,123,91,0.1), rgba(166,123,91,0.03));
+  border: 1px solid var(--wood-light); border-radius: var(--radius-sm);
+  padding: 9px 11px; font-size: 11px; color: var(--text-secondary); line-height: 1.65;
+}
+.desc-box strong { font-size: 11.5px; font-weight: 600; color: var(--wood-dark); display: block; margin-bottom: 3px; }
+
+.right-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--cream-light); }
+
+.chart-toolbar {
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px;
+}
+.tbar-left { display: flex; flex-direction: column; }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.2px; }
+.chart-subtitle { font-size: 9px; color: var(--text-muted); margin-top: 1px; }
+.tbar-right { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.chip { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; padding: 2px 8px; border-radius: 20px; border: 1px solid; display: flex; align-items: center; gap: 4px; }
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chip-fc { color: var(--sage-dark); border-color: var(--sage); background: rgba(155,176,143,0.1); }
+.chip-q { color: var(--wood); border-color: var(--wood-light); background: rgba(166,123,91,0.09); }
+.chip-type { color: var(--wood-dark); border-color: var(--wood); background: rgba(166,123,91,0.13); }
+.tbar-sep { width: 1px; height: 14px; background: var(--border); }
+.zoom-grp { display: flex; gap: 2px; }
+.zoom-btn {
+  width: 22px; height: 22px; border-radius: 4px; background: var(--cream-dark); border: 1px solid var(--border);
+  font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.13s;
+}
+.zoom-btn:hover { color: var(--wood-dark); border-color: var(--wood-light); background: white; }
+.zoom-reset { font-size: 8.5px; width: auto; padding: 0 6px; }
+
+.charts-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.chart-section { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.section-bar {
+  height: 21px; background: var(--cream-dark); border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; padding: 0 13px; gap: 6px;
+}
+.section-bar.first { border-top: none; }
+.section-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.section-name { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.45px; }
+.section-hint { font-size: 9px; color: var(--text-muted); font-style: italic; margin-left: auto; }
+.chart-wrap { flex: 1; padding: 5px 10px 3px; position: relative; min-height: 0; }
+.chart-wrap canvas { cursor: crosshair; }
+
+.status-bar {
+  height: 46px; border-top: 1px solid var(--border); background: var(--cream-light);
+  display: flex; align-items: center; padding: 0 14px; gap: 18px; flex-shrink: 0;
+}
+.sb-group { display: flex; flex-direction: column; gap: 1px; }
+.sb-label { font-size: 8.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.sb-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.sb-sep { width: 1px; height: 24px; background: var(--border); }
+.pin-block { margin-left: auto; display: none; align-items: center; gap: 9px; background: white; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 10px; }
+.pin-block.visible { display: flex; }
+.pin-label { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.pin-freq { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 700; color: var(--terracotta); }
+.pin-ph { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--wood-dark); }
+.pin-gd { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--sage-dark); }
+.pin-sep { font-size: 10px; color: var(--border); }
+.pin-clear { font-size: 9.5px; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+.pin-clear:hover { color: var(--terracotta); }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="hdr-left">
+    <div class="hdr-icon">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12 Q5 5 8 12 Q11 19 14 12" stroke="rgba(255,255,255,0.5)" fill="none"/>
+        <path d="M7 12 Q10 5 13 12 Q16 19 19 12" fill="none"/>
+        <line x1="19" y1="12" x2="22" y2="12" stroke-opacity="0.6"/>
+      </svg>
+    </div>
+    <div>
+      <div class="hdr-title">Fase &amp; Retardo de Grupo — Ecuaciones Generales</div>
+      <div class="hdr-sub">Procesadores Espectrales Biquad 2° · App Didáctica · Verio</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <span class="hdr-chip">φ · τ(ω)</span>
+    <span class="hdr-chip">v1.0</span>
+  </div>
+</header>
+
+<div class="app-body">
+  <div class="left-panel">
+    <div class="left-scroll">
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          <h3>Procesador Espectral</h3>
+        </div>
+        <div class="card-body">
+          <div class="proc-grid" id="procGrid">
+
+            <button class="proc-btn on" data-type="lp2">
+              <svg viewBox="0 0 36 22" fill="none">
+                <line x1="2" y1="14" x2="34" y2="14" stroke="#D4C8BC" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <path d="M3,6 L15,6 Q21,6 25,12 Q28,17 34,18" stroke="#B85C50" stroke-width="2" fill="none"/>
+              </svg>
+              <span class="pb-short">LP-2</span>
+              <span class="pb-long">Pasa-Bajos</span>
+            </button>
+
+            <button class="proc-btn" data-type="hp2">
+              <svg viewBox="0 0 36 22" fill="none">
+                <line x1="2" y1="14" x2="34" y2="14" stroke="#D4C8BC" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <path d="M3,18 Q7,17 11,12 Q15,6 21,6 L34,6" stroke="#B85C50" stroke-width="2" fill="none"/>
+              </svg>
+              <span class="pb-short">HP-2</span>
+              <span class="pb-long">Pasa-Altos</span>
+            </button>
+
+            <button class="proc-btn" data-type="ls">
+              <svg viewBox="0 0 36 22" fill="none">
+                <line x1="2" y1="15" x2="34" y2="15" stroke="#D4C8BC" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <path d="M3,8 L12,8 Q18,9 22,14 L34,14" stroke="#B85C50" stroke-width="2" fill="none"/>
+              </svg>
+              <span class="pb-short">LS</span>
+              <span class="pb-long">Low Shelf</span>
+            </button>
+
+            <button class="proc-btn" data-type="hs">
+              <svg viewBox="0 0 36 22" fill="none">
+                <line x1="2" y1="15" x2="34" y2="15" stroke="#D4C8BC" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <path d="M3,14 L13,14 Q17,13 21,8 L34,8" stroke="#B85C50" stroke-width="2" fill="none"/>
+              </svg>
+              <span class="pb-short">HS</span>
+              <span class="pb-long">High Shelf</span>
+            </button>
+
+            <button class="proc-btn" data-type="peak">
+              <svg viewBox="0 0 36 22" fill="none">
+                <line x1="2" y1="14" x2="34" y2="14" stroke="#D4C8BC" stroke-width="0.8" stroke-dasharray="2,2"/>
+                <path d="M3,14 L9,14 Q13,14 15,9 Q17,5 19,9 Q21,14 25,14 L34,14" stroke="#B85C50" stroke-width="2" fill="none"/>
+              </svg>
+              <span class="pb-short">PEQ</span>
+              <span class="pb-long">Peak / Bell</span>
+            </button>
+
+            <button class="proc-btn" data-type="ap2">
+              <svg viewBox="0 0 36 22" fill="none">
+                <path d="M3,5 Q9,6 14,11 Q19,16 25,17 L34,18" stroke="#A67B5B" stroke-width="1.5" stroke-dasharray="3,2" fill="none"/>
+                <path d="M3,12 L34,12" stroke="#B85C50" stroke-width="2"/>
+              </svg>
+              <span class="pb-short">AP-2</span>
+              <span class="pb-long">Pasa-Todo</span>
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="desc-box" id="procDesc">
+        <strong id="descTitle">Pasa-Bajos 2° orden (LP-2)</strong>
+        <span id="descBody">Atenúa los componentes espectrales por encima de Fc con una pendiente asintótica de 12 dB/oct. El factor Q controla la forma de la transición: con Q=0.707 se obtiene una respuesta Butterworth (máximamente plana).</span>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          <h3>Parámetros</h3>
+        </div>
+        <div class="card-body">
+
+          <div class="param-row">
+            <div class="param-head">
+              <span class="param-label">Frecuencia de Corte &nbsp; Fc</span>
+              <span class="param-pill" id="pillFc">1000 Hz</span>
+            </div>
+            <input type="range" class="styled-range" id="sliderFc" min="0" max="1000" step="1" value="500">
+          </div>
+
+          <div class="param-row" id="rowQ">
+            <div class="param-head">
+              <span class="param-label">Factor de Calidad &nbsp; Q</span>
+              <span class="param-pill" id="pillQ">0.707</span>
+            </div>
+            <input type="range" class="styled-range" id="sliderQ" min="0" max="1000" step="1" value="350">
+            <div class="param-sub" id="bwSub">AB: 2.000 oct.</div>
+          </div>
+
+          <div class="param-row hidden" id="rowGain">
+            <div class="param-head">
+              <span class="param-label">Ganancia</span>
+              <span class="param-pill" id="pillGain">+6.0 dB</span>
+            </div>
+            <input type="range" class="styled-range" id="sliderGain" min="0" max="1000" step="1" value="667">
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h8M4 17h12"/></svg>
+          <h3>Función de Transferencia — Biquad 2°</h3>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="formula-area" id="formulaHz"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          <h3>Coeficientes del Procesador</h3>
+          <span class="proc-tag" id="procTag">LP-2</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="formulaCoeffs"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <h3>Evaluación Espectral — z = e<sup style="font-size:9px">jω</sup></h3>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="formula-area" id="formulaEval"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 Q5 6 8 12 Q11 18 14 12 Q17 6 20 12"/></svg>
+          <h3>Fase φ(ω)</h3>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="formula-area" id="formulaPhase"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <h3>Retardo de Grupo τ(ω)</h3>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="formula-area" id="formulaGd"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <h3>Coeficientes Actuales</h3>
+        </div>
+        <div class="card-body">
+          <div class="coeff-row">
+            <div class="coeff-cell"><span class="coeff-lbl">b₀</span><span class="coeff-val" id="cvB0">—</span></div>
+            <div class="coeff-cell"><span class="coeff-lbl">b₁</span><span class="coeff-val" id="cvB1">—</span></div>
+            <div class="coeff-cell"><span class="coeff-lbl">b₂</span><span class="coeff-val" id="cvB2">—</span></div>
+          </div>
+          <div class="coeff-row-2" style="margin-top:5px;">
+            <div class="coeff-cell"><span class="coeff-lbl">a₁</span><span class="coeff-val" id="cvA1">—</span></div>
+            <div class="coeff-cell"><span class="coeff-lbl">a₂</span><span class="coeff-val" id="cvA2">—</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="right-panel">
+
+    <div class="chart-toolbar">
+      <div class="tbar-left">
+        <div class="chart-title">Respuesta de Fase y Retardo de Grupo</div>
+        <div class="chart-subtitle">20 Hz – 20 kHz · escala logarítmica · clic para fijar frecuencia</div>
+      </div>
+      <div class="tbar-right">
+        <div class="chip chip-type"><span class="chip-dot"></span><span id="chipType">LP-2</span></div>
+        <div class="chip chip-fc"><span class="chip-dot"></span><span id="chipFc">1000 Hz</span></div>
+        <div class="chip chip-q"><span class="chip-dot"></span><span id="chipQ">Q 0.707</span></div>
+        <div class="tbar-sep"></div>
+        <div class="zoom-grp">
+          <button class="zoom-btn" id="zoomIn">+</button>
+          <button class="zoom-btn" id="zoomOut">&minus;</button>
+          <button class="zoom-btn zoom-reset" id="zoomReset">1:1</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-area">
+
+      <div class="section-bar first">
+        <span class="section-dot" style="background:#A67B5B;"></span>
+        <span class="section-name">Fase &nbsp; φ(ω) &nbsp; [°]</span>
+        <span class="section-hint">La recta tangente al punto fijado tiene pendiente −τ(ω)</span>
+      </div>
+      <div class="chart-section">
+        <div class="chart-wrap">
+          <canvas id="phaseCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="section-bar">
+        <span class="section-dot" style="background:#7A9A6D;"></span>
+        <span class="section-name">Retardo de Grupo &nbsp; τ(ω) &nbsp; [ms]</span>
+        <span class="section-hint">τ(ω) = −dφ/dω · 1000/fs</span>
+      </div>
+      <div class="chart-section">
+        <div class="chart-wrap">
+          <canvas id="gdCanvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="status-bar">
+      <div class="sb-group"><span class="sb-label">Tipo</span><span class="sb-value" id="sbType">LP-2</span></div>
+      <div class="sb-sep"></div>
+      <div class="sb-group"><span class="sb-label">Fc</span><span class="sb-value" id="sbFc">1000 Hz</span></div>
+      <div class="sb-sep"></div>
+      <div class="sb-group"><span class="sb-label">Q</span><span class="sb-value" id="sbQ">0.707</span></div>
+      <div class="sb-sep"></div>
+      <div class="sb-group"><span class="sb-label">τ(Fc)</span><span class="sb-value" id="sbGdFc">— ms</span></div>
+      <div class="pin-block" id="pinBlock">
+        <span class="pin-label">Pin</span>
+        <span class="pin-freq" id="pinFreqEl">—</span>
+        <span class="pin-sep">|</span>
+        <span class="pin-ph" id="pinPhEl">— °</span>
+        <span class="pin-sep">|</span>
+        <span class="pin-gd" id="pinGdEl">— ms</span>
+        <span class="pin-clear" id="pinClear">✕</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SAMPLE_RATE = 44100;
+
+const state = {
+  type: 'lp2',
+  fc: 1000,
+  q: 0.707,
+  gain: 6,
+  zoomMin: 20,
+  zoomMax: 20000,
+  pinFreq: null
+};
+
+const processors = {
+  lp2: {
+    label: 'Pasa-Bajos 2° orden (LP-2)',
+    tag: 'LP-2',
+    hasQ: true,
+    hasGain: false,
+    defaultFc: 1000,
+    defaultQ: 0.707,
+    defaultGain: 0,
+    desc: 'Atenúa los componentes espectrales por encima de Fc con una pendiente asintótica de 12 dB/oct. El factor Q controla la forma de la transición: con Q = 0.707 se obtiene una respuesta Butterworth (máximamente plana).',
+    latexLines: [
+      '\\omega_0 = \\dfrac{2\\pi f_c}{f_s}, \\qquad \\alpha = \\dfrac{\\sin\\omega_0}{2Q}',
+      'b_0 = b_2 = \\dfrac{1-\\cos\\omega_0}{2(1+\\alpha)}, \\qquad b_1 = \\dfrac{1-\\cos\\omega_0}{1+\\alpha}',
+      'a_1 = \\dfrac{-2\\cos\\omega_0}{1+\\alpha}, \\qquad a_2 = \\dfrac{1-\\alpha}{1+\\alpha}'
+    ],
+    calc(fc, q, gain) {
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / (2 * q);
+      const a0 = 1 + alpha;
+      const b0 = (1 - cosW) / 2;
+      return {
+        b: [b0 / a0, (1 - cosW) / a0, b0 / a0],
+        a: [1, -2 * cosW / a0, (1 - alpha) / a0]
+      };
+    }
+  },
+
+  hp2: {
+    label: 'Pasa-Altos 2° orden (HP-2)',
+    tag: 'HP-2',
+    hasQ: true,
+    hasGain: false,
+    defaultFc: 1000,
+    defaultQ: 0.707,
+    defaultGain: 0,
+    desc: 'Atenúa los componentes por debajo de Fc con 12 dB/oct. Sus coeficientes b son simétricos a los del LP-2 respecto al coseno: donde el LP usa (1−cos ω₀), el HP usa (1+cos ω₀). El denominador es idéntico para ambos.',
+    latexLines: [
+      '\\omega_0 = \\dfrac{2\\pi f_c}{f_s}, \\qquad \\alpha = \\dfrac{\\sin\\omega_0}{2Q}',
+      'b_0 = b_2 = \\dfrac{1+\\cos\\omega_0}{2(1+\\alpha)}, \\qquad b_1 = \\dfrac{-(1+\\cos\\omega_0)}{1+\\alpha}',
+      'a_1 = \\dfrac{-2\\cos\\omega_0}{1+\\alpha}, \\qquad a_2 = \\dfrac{1-\\alpha}{1+\\alpha}'
+    ],
+    calc(fc, q, gain) {
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / (2 * q);
+      const a0 = 1 + alpha;
+      const b0 = (1 + cosW) / 2;
+      return {
+        b: [b0 / a0, -(1 + cosW) / a0, b0 / a0],
+        a: [1, -2 * cosW / a0, (1 - alpha) / a0]
+      };
+    }
+  },
+
+  ls: {
+    label: 'Low Shelf (LS)',
+    tag: 'LS',
+    hasQ: false,
+    hasGain: true,
+    defaultFc: 320,
+    defaultQ: 0.707,
+    defaultGain: 6,
+    desc: 'Amplifica o atenúa de manera uniforme la región grave. Q = 0.707 fija la transición con topología Butterworth (sin resonancia). A = 10^(G/40) es la raíz cuarta de la ganancia lineal. La fórmula corresponde al Audio EQ Cookbook de R. Bristow-Johnson.',
+    latexLines: [
+      'A = 10^{G/40},\\quad c = \\cos\\omega_0,\\quad \\alpha = \\dfrac{\\sin\\omega_0}{\\sqrt{2}},\\quad K = 2\\sqrt{A}\\,\\alpha',
+      'a_0^{*} = (A{+}1)+(A{-}1)c+K',
+      'b_0 = \\dfrac{A\\,[(A{+}1)-(A{-}1)c+K]}{a_0^{*}}, \\quad b_2 = \\dfrac{A\\,[(A{+}1)-(A{-}1)c-K]}{a_0^{*}}',
+      'b_1 = \\dfrac{2A\\,[(A{-}1)-(A{+}1)c]}{a_0^{*}}, \\quad a_1 = \\dfrac{-2[(A{-}1)+(A{+}1)c]}{a_0^{*}}, \\quad a_2 = \\dfrac{(A{+}1)+(A{-}1)c-K}{a_0^{*}}'
+    ],
+    calc(fc, q, gain) {
+      const A = Math.pow(10, gain / 40);
+      const sqA = Math.sqrt(A);
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / Math.sqrt(2);
+      const K = 2 * sqA * alpha;
+      const ap1 = A + 1, am1 = A - 1;
+      const a0 = ap1 + am1 * cosW + K;
+      return {
+        b: [A * (ap1 - am1 * cosW + K) / a0, 2 * A * (am1 - ap1 * cosW) / a0, A * (ap1 - am1 * cosW - K) / a0],
+        a: [1, -2 * (am1 + ap1 * cosW) / a0, (ap1 + am1 * cosW - K) / a0]
+      };
+    }
+  },
+
+  hs: {
+    label: 'High Shelf (HS)',
+    tag: 'HS',
+    hasQ: false,
+    hasGain: true,
+    defaultFc: 5000,
+    defaultQ: 0.707,
+    defaultGain: 6,
+    desc: 'Espejo espectral del Low Shelf: actúa sobre la región aguda. El signo del término (A−1)·cos ω₀ se invierte respecto al LS, lo que desplaza la zona de transición hacia las altas frecuencias.',
+    latexLines: [
+      'A = 10^{G/40},\\quad c = \\cos\\omega_0,\\quad \\alpha = \\dfrac{\\sin\\omega_0}{\\sqrt{2}},\\quad K = 2\\sqrt{A}\\,\\alpha',
+      'a_0^{*} = (A{+}1)-(A{-}1)c+K',
+      'b_0 = \\dfrac{A\\,[(A{+}1)+(A{-}1)c+K]}{a_0^{*}}, \\quad b_2 = \\dfrac{A\\,[(A{+}1)+(A{-}1)c-K]}{a_0^{*}}',
+      'b_1 = \\dfrac{-2A\\,[(A{-}1)+(A{+}1)c]}{a_0^{*}}, \\quad a_1 = \\dfrac{2[(A{-}1)-(A{+}1)c]}{a_0^{*}}, \\quad a_2 = \\dfrac{(A{+}1)-(A{-}1)c-K}{a_0^{*}}'
+    ],
+    calc(fc, q, gain) {
+      const A = Math.pow(10, gain / 40);
+      const sqA = Math.sqrt(A);
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / Math.sqrt(2);
+      const K = 2 * sqA * alpha;
+      const ap1 = A + 1, am1 = A - 1;
+      const a0 = ap1 - am1 * cosW + K;
+      return {
+        b: [A * (ap1 + am1 * cosW + K) / a0, -2 * A * (am1 + ap1 * cosW) / a0, A * (ap1 + am1 * cosW - K) / a0],
+        a: [1, 2 * (am1 - ap1 * cosW) / a0, (ap1 - am1 * cosW - K) / a0]
+      };
+    }
+  },
+
+  peak: {
+    label: 'Peak / Bell (PEQ)',
+    tag: 'PEQ',
+    hasQ: true,
+    hasGain: true,
+    defaultFc: 1000,
+    defaultQ: 1.414,
+    defaultGain: -9,
+    desc: 'Actúa sobre una banda centrada en Fc. Observar que b₁ = a₁: numerador y denominador comparten el coeficiente central. El AB en oct. se relaciona con Q por: AB = (2/ln2)·arcsinh(1/2Q).',
+    latexLines: [
+      'A = 10^{G/40},\\quad \\alpha = \\dfrac{\\sin\\omega_0}{2Q}',
+      'b_0 = \\dfrac{1+\\alpha A}{1+\\alpha/A},\\quad b_1 = a_1 = \\dfrac{-2\\cos\\omega_0}{1+\\alpha/A},\\quad b_2 = \\dfrac{1-\\alpha A}{1+\\alpha/A}',
+      'a_2 = \\dfrac{1-\\alpha/A}{1+\\alpha/A}'
+    ],
+    calc(fc, q, gain) {
+      const A = Math.pow(10, gain / 40);
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / (2 * q);
+      const a0 = 1 + alpha / A;
+      return {
+        b: [(1 + alpha * A) / a0, -2 * cosW / a0, (1 - alpha * A) / a0],
+        a: [1, -2 * cosW / a0, (1 - alpha / A) / a0]
+      };
+    }
+  },
+
+  ap2: {
+    label: 'Pasa-Todo 2° orden (AP-2)',
+    tag: 'AP-2',
+    hasQ: true,
+    hasGain: false,
+    defaultFc: 1000,
+    defaultQ: 0.707,
+    defaultGain: 0,
+    desc: 'Magnitud plana en todo el espectro (|H| = 1 ∀ω), pero introduce un retardo de grupo no uniforme. El numerador es el denominador invertido en el tiempo: b_k = a_{2−k}. Fundamental en redes crossover y corrección de fase.',
+    latexLines: [
+      '\\omega_0 = \\dfrac{2\\pi f_c}{f_s}, \\qquad \\alpha = \\dfrac{\\sin\\omega_0}{2Q}',
+      'b_k = a_{2-k}\\;\\Rightarrow\\;|H(e^{j\\omega})| = 1\\;\\forall\\,\\omega',
+      'b_0 = a_2 = \\dfrac{1-\\alpha}{1+\\alpha},\\quad b_1 = a_1 = \\dfrac{-2\\cos\\omega_0}{1+\\alpha},\\quad b_2 = 1'
+    ],
+    calc(fc, q, gain) {
+      const omega = 2 * Math.PI * fc / SAMPLE_RATE;
+      const cosW = Math.cos(omega);
+      const sinW = Math.sin(omega);
+      const alpha = sinW / (2 * q);
+      const a0 = 1 + alpha;
+      const a1n = -2 * cosW / a0;
+      const a2n = (1 - alpha) / a0;
+      return {
+        b: [a2n, a1n, 1],
+        a: [1, a1n, a2n]
+      };
+    }
+  }
+};
+
+const freqAxis = Array.from({ length: 400 }, (_, i) => 20 * Math.pow(1000, i / 399));
+
+let currentPhaseData = [];
+let currentGdData = [];
+
+function phaseResponse(b, a, frequencies) {
+  return frequencies.map(function(f) {
+    const omega = 2 * Math.PI * f / SAMPLE_RATE;
+    const c1 = Math.cos(omega), s1 = Math.sin(omega);
+    const c2 = Math.cos(2 * omega), s2 = Math.sin(2 * omega);
+    const nRe = b[0] + b[1] * c1 + b[2] * c2;
+    const nIm = -(b[1] * s1 + b[2] * s2);
+    const dRe = a[0] + a[1] * c1 + a[2] * c2;
+    const dIm = -(a[1] * s1 + a[2] * s2);
+    return Math.atan2(nIm * dRe - nRe * dIm, nRe * dRe + nIm * dIm);
+  });
+}
+
+function unwrapPhase(phases) {
+  const out = [phases[0]];
+  let offset = 0;
+  for (let i = 1; i < phases.length; i++) {
+    const delta = phases[i] - phases[i - 1];
+    if (delta > Math.PI) offset -= 2 * Math.PI;
+    if (delta < -Math.PI) offset += 2 * Math.PI;
+    out.push(phases[i] + offset);
+  }
+  return out;
+}
+
+function groupDelay(b, a, frequencies) {
+  const phUnwrapped = unwrapPhase(phaseResponse(b, a, frequencies));
+  const gd = new Array(frequencies.length);
+  for (let i = 1; i < frequencies.length - 1; i++) {
+    const wNext = 2 * Math.PI * frequencies[i + 1] / SAMPLE_RATE;
+    const wPrev = 2 * Math.PI * frequencies[i - 1] / SAMPLE_RATE;
+    gd[i] = -((phUnwrapped[i + 1] - phUnwrapped[i - 1]) / (wNext - wPrev)) / SAMPLE_RATE * 1000;
+  }
+  gd[0] = gd[1];
+  gd[gd.length - 1] = gd[gd.length - 2];
+  return gd;
+}
+
+function closestIndex(f) {
+  let best = 0, bestDist = Infinity;
+  for (let k = 0; k < freqAxis.length; k++) {
+    const d = Math.abs(freqAxis[k] - f);
+    if (d < bestDist) { bestDist = d; best = k; }
+  }
+  return best;
+}
+
+function formatFreq(f) {
+  if (f >= 1000) return (f % 1000 === 0 ? (f / 1000).toFixed(0) : (f / 1000).toFixed(2)) + ' kHz';
+  return Math.round(f) + ' Hz';
+}
+
+const tangentPlugin = {
+  id: 'tangentLine',
+  afterDraw(chart) {
+    if (state.pinFreq === null || currentPhaseData.length === 0) return;
+    const idx = closestIndex(state.pinFreq);
+    const span = 30;
+    const i1 = Math.max(0, idx - span);
+    const i2 = Math.min(freqAxis.length - 1, idx + span);
+    const xSc = chart.scales.x;
+    const ySc = chart.scales.y;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+
+    ctx.save();
+
+    ctx.strokeStyle = 'rgba(166,123,91,0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    const px0 = xSc.getPixelForValue(state.pinFreq);
+    ctx.beginPath(); ctx.moveTo(px0, area.top); ctx.lineTo(px0, area.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const tx1 = xSc.getPixelForValue(freqAxis[i1]);
+    const ty1 = ySc.getPixelForValue(currentPhaseData[i1]);
+    const tx2 = xSc.getPixelForValue(freqAxis[i2]);
+    const ty2 = ySc.getPixelForValue(currentPhaseData[i2]);
+    ctx.strokeStyle = 'rgba(166,123,91,0.85)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(tx1, ty1); ctx.lineTo(tx2, ty2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const py0 = ySc.getPixelForValue(currentPhaseData[idx]);
+    ctx.beginPath(); ctx.arc(px0, py0, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#A67B5B'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    ctx.restore();
+  }
+};
+
+const gdPinPlugin = {
+  id: 'gdPin',
+  afterDraw(chart) {
+    if (state.pinFreq === null || currentGdData.length === 0) return;
+    const idx = closestIndex(state.pinFreq);
+    const xSc = chart.scales.x;
+    const ySc = chart.scales.y;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+
+    ctx.save();
+
+    ctx.strokeStyle = 'rgba(122,154,109,0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    const px = xSc.getPixelForValue(state.pinFreq);
+    ctx.beginPath(); ctx.moveTo(px, area.top); ctx.lineTo(px, area.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const py = ySc.getPixelForValue(currentGdData[idx]);
+    ctx.beginPath(); ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#7A9A6D'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    ctx.restore();
+  }
+};
+
+Chart.register(tangentPlugin);
+Chart.register(gdPinPlugin);
+
+const sharedXConfig = {
+  type: 'logarithmic',
+  min: 20,
+  max: 20000,
+  ticks: {
+    color: '#8A817A',
+    font: { family: 'JetBrains Mono', size: 9.5 },
+    maxRotation: 0,
+    callback(v) {
+      const marks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+      if (!marks.includes(+v)) return '';
+      return +v >= 1000 ? (+v / 1000) + 'k' : v;
+    }
+  },
+  grid: { color: 'rgba(212,200,188,0.4)', drawBorder: false }
+};
+
+const phaseCanvas = document.getElementById('phaseCanvas');
+const gdCanvas = document.getElementById('gdCanvas');
+
+const phaseChart = new Chart(phaseCanvas, {
+  type: 'line',
+  data: {
+    labels: freqAxis,
+    datasets: [{
+      label: 'Fase',
+      data: [],
+      borderColor: '#A67B5B',
+      backgroundColor(context) {
+        const g = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+        g.addColorStop(0, 'rgba(166,123,91,0.14)');
+        g.addColorStop(0.6, 'rgba(166,123,91,0.03)');
+        g.addColorStop(1, 'rgba(166,123,91,0)');
+        return g;
+      },
+      borderWidth: 2.5,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 100, easing: 'easeOutCubic' },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(44,36,32,0.93)',
+        titleColor: '#F5EDE4',
+        bodyColor: '#D4C8BC',
+        borderColor: '#5C544D',
+        borderWidth: 1,
+        padding: 9,
+        titleFont: { family: 'DM Sans', size: 11, weight: '600' },
+        bodyFont: { family: 'JetBrains Mono', size: 11.5 },
+        callbacks: {
+          title(items) {
+            const f = items[0].parsed.x;
+            return f >= 1000 ? (f / 1000).toFixed(2) + ' kHz' : Math.round(f) + ' Hz';
+          },
+          label(item) { return '  φ = ' + item.parsed.y.toFixed(1) + ' °'; }
+        }
+      }
+    },
+    scales: {
+      x: sharedXConfig,
+      y: {
+        position: 'left',
+        ticks: {
+          color: '#8A817A',
+          font: { family: 'JetBrains Mono', size: 9.5 },
+          callback(v) { return (v > 0 ? '+' : '') + v + '°'; }
+        },
+        grid: {
+          color(context) {
+            return context.tick.value === 0 ? 'rgba(44,36,32,0.2)' : 'rgba(212,200,188,0.35)';
+          },
+          drawBorder: false
+        }
+      }
+    }
+  }
+});
+
+const gdChart = new Chart(gdCanvas, {
+  type: 'line',
+  data: {
+    labels: freqAxis,
+    datasets: [{
+      label: 'Retardo de Grupo',
+      data: [],
+      borderColor: '#7A9A6D',
+      backgroundColor(context) {
+        const g = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+        g.addColorStop(0, 'rgba(122,154,109,0.16)');
+        g.addColorStop(0.6, 'rgba(122,154,109,0.03)');
+        g.addColorStop(1, 'rgba(122,154,109,0)');
+        return g;
+      },
+      borderWidth: 2.5,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 100, easing: 'easeOutCubic' },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(44,36,32,0.93)',
+        titleColor: '#F5EDE4',
+        bodyColor: '#D4C8BC',
+        borderColor: '#5C544D',
+        borderWidth: 1,
+        padding: 9,
+        titleFont: { family: 'DM Sans', size: 11, weight: '600' },
+        bodyFont: { family: 'JetBrains Mono', size: 11.5 },
+        callbacks: {
+          title(items) {
+            const f = items[0].parsed.x;
+            return f >= 1000 ? (f / 1000).toFixed(2) + ' kHz' : Math.round(f) + ' Hz';
+          },
+          label(item) { return '  τ = ' + item.parsed.y.toFixed(3) + ' ms'; }
+        }
+      }
+    },
+    scales: {
+      x: sharedXConfig,
+      y: {
+        position: 'left',
+        ticks: {
+          color: '#8A817A',
+          font: { family: 'JetBrains Mono', size: 9.5 },
+          callback(v) { return Number.isFinite(v) ? v.toFixed(2) + 'ms' : ''; }
+        },
+        grid: {
+          color(context) {
+            return context.tick.value === 0 ? 'rgba(44,36,32,0.2)' : 'rgba(212,200,188,0.35)';
+          },
+          drawBorder: false
+        }
+      }
+    }
+  }
+});
+
+function buildStaticFormulas() {
+  document.getElementById('formulaHz').innerHTML = katex.renderToString(
+    'H(z) = \\dfrac{b_0 + b_1\\,z^{-1} + b_2\\,z^{-2}}{1 + a_1\\,z^{-1} + a_2\\,z^{-2}}',
+    { displayMode: true, throwOnError: false }
+  );
+
+  const evalLines = [
+    'N(\\omega) = b_0 + b_1\\,e^{-j\\omega} + b_2\\,e^{-2j\\omega}',
+    'D(\\omega) = 1 + a_1\\,e^{-j\\omega} + a_2\\,e^{-2j\\omega}'
+  ];
+  document.getElementById('formulaEval').innerHTML = evalLines
+    .map(l => `<div class="formula-line">${katex.renderToString(l, { displayMode: true, throwOnError: false })}</div>`)
+    .join('');
+
+  const phaseLines = [
+    '\\phi(\\omega) = \\arg\\!\\left[\\dfrac{N(\\omega)}{D(\\omega)}\\right]',
+    '= \\operatorname{atan2}\\!\\left(N_I\\,D_R - N_R\\,D_I,\\;\\; N_R\\,D_R + N_I\\,D_I\\right)'
+  ];
+  document.getElementById('formulaPhase').innerHTML = phaseLines
+    .map(l => `<div class="formula-line">${katex.renderToString(l, { displayMode: true, throwOnError: false })}</div>`)
+    .join('');
+
+  document.getElementById('formulaGd').innerHTML = katex.renderToString(
+    '\\tau(\\omega) = -\\dfrac{d\\phi}{d\\omega}\\cdot\\dfrac{1000}{f_s}\\quad[\\mathrm{ms}]',
+    { displayMode: true, throwOnError: false }
+  );
+}
+
+function buildTypeFormulas() {
+  const proc = processors[state.type];
+  document.getElementById('formulaCoeffs').innerHTML = proc.latexLines
+    .map(l => `<div class="formula-line">${katex.renderToString(l, { displayMode: true, throwOnError: false })}</div>`)
+    .join('');
+  document.getElementById('procTag').textContent = proc.tag;
+  document.getElementById('procDesc').querySelector('#descTitle').textContent = proc.label;
+  document.getElementById('procDesc').querySelector('#descBody').textContent = proc.desc;
+  document.getElementById('chipType').textContent = proc.tag;
+  document.getElementById('sbType').textContent = proc.tag;
+}
+
+function flashCoeffCells() {
+  document.querySelectorAll('.coeff-val').forEach(el => {
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 240);
+  });
+}
+
+function updateCoeffTable(b, a) {
+  document.getElementById('cvB0').textContent = b[0].toFixed(5);
+  document.getElementById('cvB1').textContent = b[1].toFixed(5);
+  document.getElementById('cvB2').textContent = b[2].toFixed(5);
+  document.getElementById('cvA1').textContent = a[1].toFixed(5);
+  document.getElementById('cvA2').textContent = a[2].toFixed(5);
+  flashCoeffCells();
+}
+
+function syncZoom() {
+  phaseChart.options.scales.x.min = state.zoomMin;
+  phaseChart.options.scales.x.max = state.zoomMax;
+  gdChart.options.scales.x.min = state.zoomMin;
+  gdChart.options.scales.x.max = state.zoomMax;
+}
+
+function redraw() {
+  const proc = processors[state.type];
+  const { b, a } = proc.calc(state.fc, state.q, state.gain);
+
+  const rawPhase = phaseResponse(b, a, freqAxis);
+  const phUnwrapped = unwrapPhase(rawPhase);
+  currentPhaseData = phUnwrapped.map(r => r * 180 / Math.PI);
+  currentGdData = groupDelay(b, a, freqAxis);
+
+  const phMin = Math.min(...currentPhaseData.filter(Number.isFinite));
+  const phMax = Math.max(...currentPhaseData.filter(Number.isFinite));
+  const phPad = Math.max(Math.abs(phMax - phMin) * 0.12, 5);
+  phaseChart.options.scales.y.min = Math.floor((phMin - phPad) / 10) * 10;
+  phaseChart.options.scales.y.max = Math.ceil((phMax + phPad) / 10) * 10;
+
+  const gdPeak = Math.max(...currentGdData.filter(Number.isFinite));
+  const gdRange = Math.max(gdPeak * 1.4, 0.05);
+  gdChart.options.scales.y.min = -gdRange;
+  gdChart.options.scales.y.max = gdRange;
+
+  syncZoom();
+
+  phaseChart.data.datasets[0].data = currentPhaseData;
+  gdChart.data.datasets[0].data = currentGdData;
+
+  phaseChart.update();
+  gdChart.update();
+
+  updateCoeffTable(b, a);
+
+  const idxFc = closestIndex(state.fc);
+  const gdAtFc = currentGdData[idxFc];
+  document.getElementById('sbGdFc').textContent = Number.isFinite(gdAtFc) ? gdAtFc.toFixed(3) + ' ms' : '—';
+
+  const fcStr = formatFreq(state.fc);
+  document.getElementById('chipFc').textContent = fcStr;
+  document.getElementById('sbFc').textContent = fcStr;
+  document.getElementById('pillFc').textContent = fcStr;
+
+  const qStr = state.q.toFixed(3);
+  document.getElementById('chipQ').textContent = 'Q ' + qStr;
+  document.getElementById('sbQ').textContent = proc.hasQ ? qStr : '0.707';
+  document.getElementById('pillQ').textContent = qStr;
+
+  const bw = (2 / Math.LN2) * Math.asinh(1 / (2 * state.q));
+  document.getElementById('bwSub').textContent = 'AB: ' + bw.toFixed(3) + ' oct.';
+  document.getElementById('pillGain').textContent = (state.gain >= 0 ? '+' : '') + state.gain.toFixed(1) + ' dB';
+
+  if (state.pinFreq !== null) {
+    const idxPin = closestIndex(state.pinFreq);
+    document.getElementById('pinFreqEl').textContent = formatFreq(state.pinFreq);
+    document.getElementById('pinPhEl').textContent = currentPhaseData[idxPin].toFixed(1) + ' °';
+    document.getElementById('pinGdEl').textContent = currentGdData[idxPin].toFixed(3) + ' ms';
+    document.getElementById('pinBlock').classList.add('visible');
+  }
+}
+
+function sliderToFc(s) { return 20 * Math.pow(1000, s / 1000); }
+function fcToSlider(fc) { return Math.round(Math.log(fc / 20) / Math.log(1000) * 1000); }
+function sliderToQ(s) { return 0.1 * Math.pow(200, s / 1000); }
+function qToSlider(q) { return Math.round(Math.log(q / 0.1) / Math.log(200) * 1000); }
+function sliderToGain(s) { return -18 + s * 36 / 1000; }
+function gainToSlider(g) { return Math.round((g + 18) * 1000 / 36); }
+
+function applyProcessorDefaults() {
+  const proc = processors[state.type];
+  state.fc = proc.defaultFc;
+  state.q = proc.defaultQ;
+  state.gain = proc.defaultGain;
+
+  document.getElementById('sliderFc').value = fcToSlider(state.fc);
+  document.getElementById('sliderQ').value = qToSlider(state.q);
+  document.getElementById('sliderGain').value = gainToSlider(state.gain);
+
+  document.getElementById('rowQ').classList.toggle('hidden', !proc.hasQ);
+  document.getElementById('rowGain').classList.toggle('hidden', !proc.hasGain);
+}
+
+document.querySelectorAll('.proc-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.proc-btn').forEach(b => b.classList.remove('on'));
+    this.classList.add('on');
+    state.type = this.dataset.type;
+    state.pinFreq = null;
+    document.getElementById('pinBlock').classList.remove('visible');
+    applyProcessorDefaults();
+    buildTypeFormulas();
+    redraw();
+  });
+});
+
+document.getElementById('sliderFc').addEventListener('input', function() {
+  state.fc = sliderToFc(parseInt(this.value));
+  redraw();
+});
+
+document.getElementById('sliderQ').addEventListener('input', function() {
+  state.q = sliderToQ(parseInt(this.value));
+  redraw();
+});
+
+document.getElementById('sliderGain').addEventListener('input', function() {
+  state.gain = sliderToGain(parseInt(this.value));
+  redraw();
+});
+
+function zoomBothCharts(newMin, newMax) {
+  state.zoomMin = newMin;
+  state.zoomMax = newMax;
+  syncZoom();
+  phaseChart.update('none');
+  gdChart.update('none');
+}
+
+document.getElementById('zoomIn').addEventListener('click', function() {
+  const lMin = Math.log10(state.zoomMin), lMax = Math.log10(state.zoomMax);
+  const mid = (lMin + lMax) / 2;
+  const half = (lMax - lMin) / 2 * 0.7;
+  zoomBothCharts(Math.max(20, Math.pow(10, mid - half)), Math.min(20000, Math.pow(10, mid + half)));
+});
+
+document.getElementById('zoomOut').addEventListener('click', function() {
+  const lMin = Math.log10(state.zoomMin), lMax = Math.log10(state.zoomMax);
+  const mid = (lMin + lMax) / 2;
+  const half = Math.min((lMax - lMin) / 2 * 1.4, 1.65);
+  zoomBothCharts(Math.max(20, Math.pow(10, mid - half)), Math.min(20000, Math.pow(10, mid + half)));
+});
+
+document.getElementById('zoomReset').addEventListener('click', function() {
+  zoomBothCharts(20, 20000);
+});
+
+function handleCanvasClick(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const chart = canvas === phaseCanvas ? phaseChart : gdChart;
+  const area = chart.chartArea;
+  if (mx < area.left || mx > area.right) return;
+  state.pinFreq = chart.scales.x.getValueForPixel(mx);
+  redraw();
+}
+
+phaseCanvas.addEventListener('click', function(e) { handleCanvasClick(e, phaseCanvas); });
+gdCanvas.addEventListener('click', function(e) { handleCanvasClick(e, gdCanvas); });
+
+function handleWheel(e, canvas) {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const chart = canvas === phaseCanvas ? phaseChart : gdChart;
+  const cursorF = chart.scales.x.getValueForPixel(e.clientX - rect.left);
+  if (!cursorF || cursorF < 1) return;
+  const lMin = Math.log10(state.zoomMin), lMax = Math.log10(state.zoomMax);
+  const lCursor = Math.log10(Math.max(20, Math.min(20000, cursorF)));
+  const factor = e.deltaY > 0 ? 1.3 : 0.75;
+  const nMin = lCursor - (lCursor - lMin) * factor;
+  const nMax = lCursor + (lMax - lCursor) * factor;
+  const cMin = Math.max(Math.log10(20), nMin);
+  const cMax = Math.min(Math.log10(20000), nMax);
+  if (cMax - cMin >= 0.5) zoomBothCharts(Math.pow(10, cMin), Math.pow(10, cMax));
+}
+
+phaseCanvas.addEventListener('wheel', function(e) { handleWheel(e, phaseCanvas); }, { passive: false });
+gdCanvas.addEventListener('wheel', function(e) { handleWheel(e, gdCanvas); }, { passive: false });
+
+document.getElementById('pinClear').addEventListener('click', function() {
+  state.pinFreq = null;
+  document.getElementById('pinBlock').classList.remove('visible');
+  phaseChart.update('none');
+  gdChart.update('none');
+});
+
+buildStaticFormulas();
+buildTypeFormulas();
+applyProcessorDefaults();
+redraw();
+</script>
+</body>
+</html>
